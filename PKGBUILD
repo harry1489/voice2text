@@ -1,10 +1,10 @@
-# Maintainer: Harry <harry@example.com>
+# Maintainer: harry1489 <harry1489@users.noreply.github.com>
 pkgname=voice2text
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Linux voice-to-text dictation tool using Whisper"
 arch=('x86_64')
-url="https://github.com/yourusername/copilot-clone"
+url="https://github.com/harry1489/voice2text"
 license=('MIT')
 depends=('alsa-lib' 'gcc-libs' 'glibc')
 makedepends=('cargo' 'cmake' 'clang' 'pkg-config')
@@ -13,7 +13,7 @@ optdepends=(
 	'wtype: fallback text injection on Wayland'
 	'wl-clipboard: fallback clipboard copy on Wayland'
 )
-source=("$pkgname-$pkgver.tar.gz::https://github.com/yourusername/copilot-clone/archive/refs/tags/v$pkgver.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/harry1489/voice2text/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 prepare() {
