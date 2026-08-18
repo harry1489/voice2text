@@ -50,15 +50,11 @@ jobs:
 
       - name: Install cross-compilation toolchain
         run: |
+          sudo dpkg --add-architecture arm64
           sudo apt-get update
-          sudo apt-get install -y cmake clang pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            gcc-aarch64-linux-gnu-cross qemu-user-static
-
-      - name: Install aarch64 sysroot
-        run: |
-          wget -q https://more.musl.cc/11/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O /tmp/sysroot.tgz
-          sudo mkdir -p /opt/aarch64-sysroot
-          sudo tar xzf /tmp/sysroot.tgz -C /opt/aarch64-sysroot --strip-components=1
+          sudo apt-get install -y cmake clang pkg-config \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            libasound2-dev:arm64
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -71,8 +67,6 @@ jobs:
           export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
           export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          export PKG_CONFIG_SYSROOT_DIR=/opt/aarch64-sysroot
-          export PKG_CONFIG_PATH=/opt/aarch64-sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:/opt/aarch64-sysroot/usr/lib/pkgconfig
           export PKG_CONFIG_ALLOW_CROSS=1
           RUSTFLAGS="-C target-cpu=cortex-a53" cargo build --release --target aarch64-unknown-linux-gnu
 
