@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake clang pkg-config libasound2-dev
+          sudo apt-get install -y cmake clang pkg-config libasound2-dev build-essential debhelper cargo rustc
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -25,7 +25,7 @@ jobs:
       - name: Build
         run: RUSTFLAGS="-C target-cpu=x86-64-v2" cargo build --release
 
-      - name: Package
+      - name: Package tarball
         run: |
           mkdir -p dist/voice2text-${{ github.ref_name }}-linux-x86_64
           cp target/release/voice2text dist/voice2text-${{ github.ref_name }}-linux-x86_64/
@@ -48,10 +48,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install cross-compilation toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake clang pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt-get install -y cmake clang pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu-cross qemu-user-static
+
+      - name: Install aarch64 sysroot
+        run: |
+          wget -q https://more.musl.cc/11/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O /tmp/sysroot.tgz
+          sudo mkdir -p /opt/aarch64-sysroot
+          sudo tar xzf /tmp/sysroot.tgz -C /opt/aarch64-sysroot --strip-components=1
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -64,6 +71,9 @@ jobs:
           export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
           export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          export PKG_CONFIG_SYSROOT_DIR=/opt/aarch64-sysroot
+          export PKG_CONFIG_PATH=/opt/aarch64-sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:/opt/aarch64-sysroot/usr/lib/pkgconfig
+          export PKG_CONFIG_ALLOW_CROSS=1
           RUSTFLAGS="-C target-cpu=cortex-a53" cargo build --release --target aarch64-unknown-linux-gnu
 
       - name: Package
@@ -90,8 +100,8 @@ jobs:
       - name: Install cargo-wix
         run: cargo install cargo-wix
 
-      - name: Generate WiX manifest
-        run: cargo wix init
+      - name: Overwrite WiX manifest
+        run: cargo wix init --force
 
       - name: Build
         run: cargo build --release
@@ -150,8 +160,7 @@ jobs:
       - name: Collect files
         run: |
           mkdir -p release-files
-          find . -path '*/voice2text-*' \( -name "*.tar.gz" -o -name "*.deb" -o -name "*.msi" -o -name "*.exe" \) -not -path '*/target/*' | while read f; do cp "$f" release-files/; done
-          find . -path '*/target/wix/*.msi' | while read f; do cp "$f" release-files/; done
+          find . -name "*.tar.gz" -o -name "*.deb" -o -name "*.msi" -o -name "*.exe" | while read f; do cp "$f" release-files/; done
           ls -lh release-files/
 
       - name: Create GitHub Release
