@@ -1,0 +1,13 @@
+[package]
+name = "voice2text"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+whisper-rs = "0.16"
+cpal = "0.18"
+evdev = "0.13"
+
+[profile.release]
+lto = "thin"
+strip = true

@@ -1,0 +1,7 @@
+/target/
+/models/
+*.wav
+*.swp
+*.swo
+*~
+.DS_Store

@@ -1,0 +1,100 @@
+mod audio;
+mod hotkey;
+mod stt;
+mod typeout;
+
+use std::path::PathBuf;
+use std::sync::mpsc;
+
+use evdev::KeyCode;
+
+const DEFAULT_MODEL: &str = "/home/harry/copilot/models/ggml-small.en.bin";
+const DEFAULT_TRIGGER: u16 = KeyCode::KEY_F23.code(); // 193; Copilot button sends Meta+Shift+F23
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trigger_is_f23() {
+        assert_eq!(DEFAULT_TRIGGER, KeyCode::KEY_F23.code());
+        assert_eq!(DEFAULT_TRIGGER, 193, "KEY_F23 must be 193 (0xc1), not the old 0x6c");
+    }
+}
+
+fn main() {
+    let model_path = std::env::var("V2T_MODEL")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from(DEFAULT_MODEL));
+
+    let transcriber = match stt::Transcriber::new(&model_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    };
+
+    let (work_tx, work_rx) = mpsc::channel::<Vec<f32>>();
+    std::thread::spawn(move || {
+        for samples in work_rx {
+            let started = std::time::Instant::now();
+            match transcriber.transcribe(&samples) {
+                Ok(text) if !text.is_empty() => {
+                    eprintln!("[stt] ({:.1}s) {text}", started.elapsed().as_secs_f32());
+                    typeout::type_text(&text);
+                }
+                Ok(_) => eprintln!("[stt] no speech detected"),
+                Err(e) => eprintln!("[stt] error: {e}"),
+            }
+        }
+    });
+
+    let trigger = parse_trigger();
+    eprintln!(
+        "[main] voice2text ready. Hold the Copilot button (or F23, code 0x{trigger:02x}) to dictate."
+    );
+
+    let (key_tx, key_rx) = mpsc::channel::<hotkey::KeyEvent>();
+    hotkey::spawn_listener(key_tx);
+
+    let mut recording = false;
+
+    for ev in key_rx {
+        match ev {
+            hotkey::KeyEvent::Down(code) if code.0 == trigger => {
+                if !recording {
+                    recording = true;
+                    match audio::start_recording() {
+                        Ok(()) => eprintln!("[audio] recording..."),
+                        Err(e) => {
+                            eprintln!("[audio] failed to start recording: {e}");
+                            recording = false;
+                        }
+                    }
+                }
+            }
+            hotkey::KeyEvent::Up(code) if code.0 == trigger => {
+                if !recording {
+                    continue;
+                }
+                recording = false;
+                eprintln!("[audio] stopped");
+                let samples = audio::stop_recording();
+                if samples.len() < (16000 / 2) {
+                    eprintln!("[audio] recording too short, skipping");
+                } else if work_tx.send(samples).is_err() {
+                    eprintln!("[worker] channel closed");
+                }
+            }
+            _ => continue,
+        }
+    }
+}
+
+fn parse_trigger() -> u16 {
+    std::env::var("V2T_TRIGGER")
+        .ok()
+        .and_then(|v| u16::from_str_radix(v.trim_start_matches("0x"), 16).ok())
+        .unwrap_or(DEFAULT_TRIGGER)
+}
