@@ -1,32 +1,36 @@
 #[cfg(target_os = "linux")]
-mod audio;
-#[cfg(target_os = "linux")]
+#[path = "hotkey.rs"]
 mod hotkey;
 #[cfg(target_os = "linux")]
-mod stt;
-#[cfg(target_os = "linux")]
+#[path = "typeout.rs"]
 mod typeout;
+#[cfg(target_os = "linux")]
+mod audio;
+#[cfg(target_os = "linux")]
+mod stt;
 
+#[cfg(target_os = "windows")]
+#[path = "hotkey_windows.rs"]
+mod hotkey;
+#[cfg(target_os = "windows")]
+#[path = "typeout_windows.rs"]
+mod typeout;
 #[cfg(target_os = "windows")]
 mod audio;
 #[cfg(target_os = "windows")]
-mod hotkey_windows as hotkey;
-#[cfg(target_os = "windows")]
 mod stt;
-#[cfg(target_os = "windows")]
-mod typeout_windows as typeout;
 
 use std::path::PathBuf;
 use std::sync::mpsc;
 
 const DEFAULT_MODEL: &str = "/home/harry/copilot/models/ggml-small.en.bin";
-const DEFAULT_TRIGGER: u16 = 193; // F23 (0xc1); Copilot button sends Meta+Shift+F23 on Linux
+const DEFAULT_TRIGGER: u16 = 193;
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn trigger_is_f23() {
-        assert_eq!(super::DEFAULT_TRIGGER, 193, "KEY_F23 must be 193 (0xc1), not the old 0x6c");
+        assert_eq!(super::DEFAULT_TRIGGER, 193);
     }
 }
 
