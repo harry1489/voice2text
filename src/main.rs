@@ -1,24 +1,32 @@
+#[cfg(target_os = "linux")]
 mod audio;
+#[cfg(target_os = "linux")]
 mod hotkey;
+#[cfg(target_os = "linux")]
 mod stt;
+#[cfg(target_os = "linux")]
 mod typeout;
+
+#[cfg(target_os = "windows")]
+mod audio;
+#[cfg(target_os = "windows")]
+mod hotkey_windows as hotkey;
+#[cfg(target_os = "windows")]
+mod stt;
+#[cfg(target_os = "windows")]
+mod typeout_windows as typeout;
 
 use std::path::PathBuf;
 use std::sync::mpsc;
 
-use evdev::KeyCode;
-
 const DEFAULT_MODEL: &str = "/home/harry/copilot/models/ggml-small.en.bin";
-const DEFAULT_TRIGGER: u16 = KeyCode::KEY_F23.code(); // 193; Copilot button sends Meta+Shift+F23
+const DEFAULT_TRIGGER: u16 = 193; // F23 (0xc1); Copilot button sends Meta+Shift+F23 on Linux
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn trigger_is_f23() {
-        assert_eq!(DEFAULT_TRIGGER, KeyCode::KEY_F23.code());
-        assert_eq!(DEFAULT_TRIGGER, 193, "KEY_F23 must be 193 (0xc1), not the old 0x6c");
+        assert_eq!(super::DEFAULT_TRIGGER, 193, "KEY_F23 must be 193 (0xc1), not the old 0x6c");
     }
 }
 
@@ -52,7 +60,7 @@ fn main() {
 
     let trigger = parse_trigger();
     eprintln!(
-        "[main] voice2text ready. Hold the Copilot button (or F23, code 0x{trigger:02x}) to dictate."
+        "[main] voice2text ready. Hold the trigger key (0x{trigger:02x}) to dictate."
     );
 
     let (key_tx, key_rx) = mpsc::channel::<hotkey::KeyEvent>();
@@ -62,6 +70,7 @@ fn main() {
 
     for ev in key_rx {
         match ev {
+            #[cfg(target_os = "linux")]
             hotkey::KeyEvent::Down(code) if code.0 == trigger => {
                 if !recording {
                     recording = true;
@@ -74,7 +83,35 @@ fn main() {
                     }
                 }
             }
+            #[cfg(target_os = "linux")]
             hotkey::KeyEvent::Up(code) if code.0 == trigger => {
+                if !recording {
+                    continue;
+                }
+                recording = false;
+                eprintln!("[audio] stopped");
+                let samples = audio::stop_recording();
+                if samples.len() < (16000 / 2) {
+                    eprintln!("[audio] recording too short, skipping");
+                } else if work_tx.send(samples).is_err() {
+                    eprintln!("[worker] channel closed");
+                }
+            }
+            #[cfg(target_os = "windows")]
+            hotkey::KeyEvent::Down(code) if code == trigger => {
+                if !recording {
+                    recording = true;
+                    match audio::start_recording() {
+                        Ok(()) => eprintln!("[audio] recording..."),
+                        Err(e) => {
+                            eprintln!("[audio] failed to start recording: {e}");
+                            recording = false;
+                        }
+                    }
+                }
+            }
+            #[cfg(target_os = "windows")]
+            hotkey::KeyEvent::Up(code) if code == trigger => {
                 if !recording {
                     continue;
                 }

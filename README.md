@@ -1,12 +1,22 @@
 # voice2text
 
-Linux voice-to-text dictation tool. Hold a hotkey, speak, and your words are transcribed locally using [Whisper](https://github.com/ggerganov/whisper.cpp) and typed into the active window.
+Voice-to-text dictation tool for Linux and Windows. Hold a hotkey, speak, and your words are transcribed locally using [Whisper](https://github.com/ggerganov/whisper.cpp) and typed into the active window.
 
 - **Offline** — all inference runs locally via whisper.cpp
 - **No cloud APIs** — your audio never leaves your machine
-- **Multiple text injection methods** — uinput, ydotool, wtype, or clipboard fallback
+- **Cross-platform** — Linux (uinput/ydotool/wtype) and Windows (SendInput)
+- **Multiple text injection methods** with automatic fallback
+
+## Platform support
+
+| Platform | Text injection | Hotkey method |
+|----------|---------------|---------------|
+| Linux | uinput, ydotool, wtype, wl-copy | evdev (`/dev/input`) |
+| Windows | SendInput API | `GetAsyncKeyState` polling |
 
 ## Dependencies
+
+### Linux
 
 | Dependency | Purpose |
 |------------|---------|
@@ -15,13 +25,27 @@ Linux voice-to-text dictation tool. Hold a hotkey, speak, and your words are tra
 | `clang` | Generating FFI bindings |
 | `pkg-config` | Finding system libraries |
 
-### Optional (text injection fallbacks)
+Optional: `ydotool`, `wtype`, `wl-clipboard` (text injection fallbacks)
 
-- `ydotool` — Wayland/X11 input injection
-- `wtype` — Wayland typing
-- `wl-clipboard` — Wayland clipboard copy
+### Windows
+
+- [Rust](https://rustup.rs/) toolchain
+- Visual Studio Build Tools (C++ workload)
+- CMake (usually bundled with vcpkg or install separately)
 
 ## Installation
+
+### Windows
+
+```powershell
+# Build from source:
+git clone https://github.com/harry1489/voice2text.git
+cd voice2text
+cargo build --release
+copy target\release\voice2text.exe C:\Users\YourName\AppData\Local\Microsoft\WindowsApps\
+```
+
+Or add `target\release\` to your `PATH`.
 
 ### Arch Linux (AUR)
 
@@ -66,12 +90,11 @@ makepkg -si
 ### Debian / Ubuntu
 
 ```bash
-# Build the .deb package:
 git clone https://github.com/harry1489/voice2text.git
 cd voice2text
 dpkg-buildpackage -us -uc
 sudo dpkg -i ../voice2text_0.1.0-1_amd64.deb
-sudo apt-get install -f  # resolve any missing deps
+sudo apt-get install -f
 ```
 
 #### Setting up your own apt repo
@@ -144,26 +167,30 @@ nix-build packaging/nix/default.nix
 git clone https://github.com/harry1489/voice2text.git
 cd voice2text
 cargo build --release
+# Linux:
 sudo cp target/release/voice2text /usr/bin/
+# Windows: copy target\release\voice2text.exe to somewhere in PATH
 ```
 
 ## Setup
 
 ### 1. Download a Whisper model
 
+**Linux:**
 ```bash
 ./install.sh
 ```
 
-This downloads `ggml-base.en.bin` (~140MB) to `models/`. For better accuracy:
-
-```bash
-V2T_MODEL=ggml-small.en.bin ./install.sh
+**Windows** (PowerShell):
+```powershell
+Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin" -OutFile "models\ggml-base.en.bin"
 ```
+
+This downloads `ggml-base.en.bin` (~140MB) to `models/`. For better accuracy, set `V2T_MODEL=ggml-small.en.bin`.
 
 Available models: `ggml-tiny.en.bin`, `ggml-base.en.bin`, `ggml-small.en.bin`, `ggml-medium.en.bin`, `ggml-large-v3.bin`
 
-### 2. Permissions
+### 2. Permissions (Linux only)
 
 For uinput text injection (recommended), add your user to the `input` and `uinput` groups:
 
@@ -179,14 +206,14 @@ Log out and back in for changes to take effect.
 voice2text
 ```
 
-Hold **F23** (the Copilot button) and speak. Release to transcribe.
+Hold the trigger key and speak. Release to transcribe.
 
 ## Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `V2T_MODEL` | `/home/harry/copilot/models/ggml-small.en.bin` | Path to Whisper model file |
-| `V2T_TRIGGER` | `0xc1` (F23) | Hex key code for the trigger key |
+| `V2T_MODEL` | `ggml-small.en.bin` | Path to Whisper model file |
+| `V2T_TRIGGER` | `0xc1` (Linux) / `0xc1` (Windows) | Hex key code for the trigger key |
 
 Example:
 
@@ -194,13 +221,19 @@ Example:
 V2T_MODEL=./models/ggml-base.en.bin V2T_TRIGGER=0x3e voice2text
 ```
 
-## Text injection order
+## Text injection
+
+### Linux (fallback order)
 
 1. **uinput** — virtual keyboard device (requires `uinput` group)
 2. **ydotool** — requires `ydotoold` daemon running
 3. **wtype** — Wayland only
 4. **wl-copy** — copies to clipboard as last resort
 5. **stderr** — prints text if nothing else works
+
+### Windows
+
+Uses the `SendInput` API directly — no external tools needed.
 
 ## License
 
