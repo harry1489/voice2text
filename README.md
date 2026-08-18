@@ -47,6 +47,26 @@ copy target\release\voice2text.exe C:\Users\YourName\AppData\Local\Microsoft\Win
 
 Or add `target\release\` to your `PATH`.
 
+#### Building the MSI installer
+
+1. Install [WiX Toolset](https://wixtoolset.org/) v3.14+ and [cargo-wix](https://github.com/volks73/cargo-wix):
+   ```powershell
+   cargo install cargo-wix
+   ```
+
+2. Build the MSI:
+   ```powershell
+   cargo wix
+   ```
+
+3. The installer will be at `target\wix\voice2text-0.1.0-x64.msi`.
+
+The MSI installer:
+- Installs to `Program Files\voice2text\`
+- Adds a Start Menu shortcut
+- Optionally adds a Desktop shortcut
+- Supports silent install: `voice2text-0.1.0-x64.msi /quiet /norestart`
+
 ### Arch Linux (AUR)
 
 ```bash

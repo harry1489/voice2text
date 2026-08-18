@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+    <Product
+        Id="*"
+        Name="voice2text"
+        UpgradeCode="12b13f5a-9c24-4a2f-b8b2-6e7d4f3c8b91"
+        Manufacturer="harry1489"
+        Language="1033"
+        Codepage="1252"
+        Version="!(bind.FileVersion.voice2text.exe)">
+
+        <Package
+            Id="*"
+            Keywords="Installer"
+            Description="voice2text - Voice-to-text dictation tool"
+            Manufacturer="harry1489"
+            InstallerVersion="450"
+            Languages="1033"
+            Compressed="yes"
+            InstallScope="perMachine"
+            SummaryCodepage="1252"
+            Platform="$(sys.BUILDARCH)" />
+
+        <MajorUpgrade
+            Schedule="afterInstallInitialize"
+            DowngradeErrorMessage="A newer version of [ProductName] is already installed. Setup will now exit." />
+
+        <Media Id="1" Cabinet="voice2text.cab" EmbedCab="yes" DiskPrompt="CD-ROM #1" />
+        <Property Id="DiskPrompt" Value="voice2text Installation" />
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="$(var.PlatformProgramFilesFolder)" Name="PFiles">
+                <Directory Id="APPLICATIONFOLDER" Name="voice2text">
+
+                    <Component Id="MainExecutable" Guid="*">
+                        <File
+                            Id="voice2text.exe"
+                            Name="voice2text.exe"
+                            DiskId="1"
+                            Source="!(bind.TargetDir)\voice2text.exe"
+                            KeyPath="yes" />
+                    </Component>
+
+                    <Component Id="LicenseFile" Guid="*">
+                        <File
+                            Id="LicenseFile"
+                            Name="LICENSE"
+                            DiskId="1"
+                            Source="LICENSE"
+                            KeyPath="yes" />
+                    </Component>
+
+                    <Component Id="InstallScript" Guid="*">
+                        <File
+                            Id="install_sh"
+                            Name="install.sh"
+                            DiskId="1"
+                            Source="install.sh"
+                            KeyPath="yes" />
+                    </Component>
+
+                    <Component Id="ModelsDir" Guid="*">
+                        <CreateFolder Directory="ModelsFolder" />
+                    </Component>
+
+                </Directory>
+            </Directory>
+
+            <Directory Id="ProgramMenuFolder">
+                <Directory
+                    Id="ApplicationProgramsFolder"
+                    Name="voice2text" />
+            </Directory>
+
+            <Directory Id="DesktopFolder" />
+        </Directory>
+
+        <DirectoryRef Id="APPLICATIONFOLDER">
+            <Component Id="Shortcut" Guid="*">
+                <Shortcut
+                    Id="ApplicationStartMenuShortcut"
+                    Name="voice2text"
+                    Description="Voice-to-text dictation tool"
+                    Target="[APPLICATIONFOLDER]voice2text.exe"
+                    WorkingDirectory="APPLICATIONFOLDER"
+                    Directory="ApplicationProgramsFolder" />
+                <RemoveFolder
+                    Id="CleanUpShortCut"
+                    Directory="ApplicationProgramsFolder"
+                    On="uninstall" />
+                <RegistryValue
+                    Root="HKCU"
+                    Key="Software\voice2text"
+                    Name="installed"
+                    Type="integer"
+                    Value="1"
+                    KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="DesktopFolder">
+            <Component Id="DesktopShortcut" Guid="*">
+                <Shortcut
+                    Id="DesktopVoice2Text"
+                    Name="voice2text"
+                    Description="Voice-to-text dictation tool"
+                    Target="[APPLICATIONFOLDER]voice2text.exe"
+                    WorkingDirectory="APPLICATIONFOLDER" />
+                <RegistryValue
+                    Root="HKCU"
+                    Key="Software\voice2text"
+                    Name="desktop_shortcut"
+                    Type="integer"
+                    Value="1"
+                    KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <Feature
+            Id="MainProgram"
+            Title="voice2text"
+            Description="Installs voice2text executable and supporting files."
+            Level="1"
+            ConfigurableDirectory="APPLICATIONFOLDER"
+            AllowAdvertise="no"
+            Display="expand"
+            Absent="disallow">
+
+            <ComponentRef Id="MainExecutable" />
+            <ComponentRef Id="LicenseFile" />
+            <ComponentRef Id="InstallScript" />
+            <ComponentRef Id="Shortcut" />
+
+            <Feature
+                Id="DesktopShortcut"
+                Title="Desktop Shortcut"
+                Description="Adds a shortcut to the desktop."
+                Level="1"
+                AllowAbsent="no">
+                <ComponentRef Id="DesktopShortcut" />
+            </Feature>
+        </Feature>
+
+        <SetProperty Id="ARPINSTALLLOCATION" Value="[APPLICATIONFOLDER]" After="CostFinalize" />
+
+        <Icon Id="ProductIcon" SourceFile="!(bind.TargetDir)\voice2text.exe" />
+        <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+        <Property Id="ARPHELPLINK" Value="https://github.com/harry1489/voice2text" />
+        <Property Id="ARPURLINFOABOUT" Value="https://github.com/harry1489/voice2text" />
+        <Property Id="ARPCONTACT" Value="harry1489@users.noreply.github.com" />
+        <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+        <Property Id="ARPNOMODIFY" Value="yes" Secure="yes" />
+
+        <UI>
+            <UIRef Id="WixUI_FeatureTree" />
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg" Order="99">1</Publish>
+            <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="99">1</Publish>
+        </UI>
+
+    </Product>
+
+</Wix>
