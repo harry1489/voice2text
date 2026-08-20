@@ -33,63 +33,19 @@ jobs:
           name: linux-x86_64
           path: dist/voice2text-linux-x86_64.tar.gz
 
-  build-linux-aarch64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install cross-compilation toolchain
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake clang pkg-config \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            libasound2-dev:arm64
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-unknown-linux-gnu
-      - name: Build
-        run: |
-          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
-          export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
-          export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
-          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          export PKG_CONFIG_ALLOW_CROSS=1
-          RUSTFLAGS="-C target-cpu=cortex-a53 -C panic=abort" cargo build --release --target aarch64-unknown-linux-gnu
-      - name: Package
-        run: |
-          mkdir -p dist/voice2text-linux-aarch64
-          cp target/aarch64-unknown-linux-gnu/release/voice2text dist/voice2text-linux-aarch64/
-          cp target/aarch64-unknown-linux-gnu/release/v2t-config dist/voice2text-linux-aarch64/
-          cp install.sh dist/voice2text-linux-aarch64/
-          cp voice2text.service dist/voice2text-linux-aarch64/
-          tar czf dist/voice2text-linux-aarch64.tar.gz -C dist voice2text-linux-aarch64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-aarch64
-          path: dist/voice2text-linux-aarch64.tar.gz
-
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-wix
-        run: cargo install cargo-wix
       - name: Build
         run: cargo build --release
-      - name: Build MSI
-        run: cargo wix --no-build
       - name: Package zip
-        run: |
-          mkdir dist
-          Compress-Archive -Path target/release/voice2text.exe,target/release/v2t-config.exe -DestinationPath dist/voice2text-windows-x86_64.zip
+        run: Compress-Archive -Path target/release/voice2text.exe,target/release/v2t-config.exe -DestinationPath dist/voice2text-windows-x86_64.zip
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: |
-            dist/*.zip
-            target/wix/*.msi
+          path: dist/voice2text-windows-x86_64.zip
 
   build-macos:
     strategy:
@@ -110,9 +66,7 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Package
-        run: |
-          mkdir -p dist
-          tar czf dist/voice2text-macos-${{ matrix.arch }}.tar.gz -C target/${{ matrix.target }}/release voice2text
+        run: tar czf dist/voice2text-macos-${{ matrix.arch }}.tar.gz -C target/${{ matrix.target }}/release voice2text
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
@@ -120,7 +74,7 @@ jobs:
 
   release:
     if: always()
-    needs: [build-linux-x86_64, build-linux-aarch64, build-windows, build-macos]
+    needs: [build-linux-x86_64, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +84,7 @@ jobs:
       - name: Collect files
         run: |
           mkdir -p release-files
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.msi" \) -exec cp {} release-files/ \;
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec cp {} release-files/ \;
           ls -lh release-files/
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
