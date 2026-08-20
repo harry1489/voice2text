@@ -1,0 +1,11 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/harry/copilot-clone/src/target/release/build/whisper-rs-sys-9103b91eeea40bfa/out/build/cmake_install.cmake",
+		"/home/harry/copilot-clone/src/target/release/build/whisper-rs-sys-9103b91eeea40bfa/out/build/ggml/cmake_install.cmake",
+		"/home/harry/copilot-clone/src/target/release/build/whisper-rs-sys-9103b91eeea40bfa/out/build/ggml/src/cmake_install.cmake",
+		"/home/harry/copilot-clone/src/target/release/build/whisper-rs-sys-9103b91eeea40bfa/out/build/ggml/src/ggml-cpu/cmake_install.cmake",
+		"/home/harry/copilot-clone/src/target/release/build/whisper-rs-sys-9103b91eeea40bfa/out/build/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

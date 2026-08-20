@@ -1,0 +1,28 @@
+Source: voice2text
+Section: utils
+Priority: optional
+Maintainer: Harry <harry@example.com>
+Build-Depends: debhelper-compat (= 13),
+               cargo,
+               rustc,
+               cmake,
+               clang,
+               pkg-config,
+               libasound2-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/yourusername/copilot-clone
+
+Package: voice2text
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: ydotool, wtype, wl-clipboard
+Description: Linux voice-to-text dictation tool using Whisper
+ voice2text is a push-to-talk voice dictation tool for Linux. Hold a
+ configurable hotkey (default: F23), speak into your microphone, and
+ your speech is transcribed locally using OpenAI's Whisper model and
+ typed into the active window.
+ .
+ Features:
+  - Offline speech-to-text via whisper.cpp
+  - Automatic text injection via uinput, ydotool, wtype, or clipboard
+  - Configurable trigger key and Whisper model

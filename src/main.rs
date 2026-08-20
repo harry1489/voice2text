@@ -23,8 +23,40 @@ mod stt;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
-const DEFAULT_MODEL: &str = "/home/harry/copilot/models/ggml-small.en.bin";
+const DEFAULT_MODEL: &str = "ggml-small.en.bin";
 const DEFAULT_TRIGGER: u16 = 193;
+
+fn config_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+    PathBuf::from(home).join(".config").join("voice2text")
+}
+
+fn models_dir() -> PathBuf {
+    let cfg = read_config();
+    cfg.get("model_dir")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+            PathBuf::from(home).join(".local").join("share").join("voice2text").join("models")
+        })
+}
+
+fn read_config() -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    let path = config_dir().join("config");
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some((key, value)) = line.split_once('=') {
+                map.insert(key.trim().to_string(), value.trim().to_string());
+            }
+        }
+    }
+    map
+}
 
 #[cfg(test)]
 mod tests {
@@ -35,14 +67,17 @@ mod tests {
 }
 
 fn main() {
+    let cfg = read_config();
+    let model_name = cfg.get("model").map(|s| s.as_str()).unwrap_or(DEFAULT_MODEL);
     let model_path = std::env::var("V2T_MODEL")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from(DEFAULT_MODEL));
+        .unwrap_or_else(|_| models_dir().join(model_name));
 
     let transcriber = match stt::Transcriber::new(&model_path) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("{e}");
+            eprintln!("Run v2t-config to download a model.");
             std::process::exit(1);
         }
     };
@@ -134,8 +169,16 @@ fn main() {
 }
 
 fn parse_trigger() -> u16 {
-    std::env::var("V2T_TRIGGER")
-        .ok()
-        .and_then(|v| u16::from_str_radix(v.trim_start_matches("0x"), 16).ok())
-        .unwrap_or(DEFAULT_TRIGGER)
+    if let Ok(v) = std::env::var("V2T_TRIGGER") {
+        if let Ok(code) = u16::from_str_radix(v.trim_start_matches("0x"), 16) {
+            return code;
+        }
+    }
+    let cfg = read_config();
+    if let Some(v) = cfg.get("trigger") {
+        if let Ok(code) = u16::from_str_radix(v.trim_start_matches("0x"), 16) {
+            return code;
+        }
+    }
+    DEFAULT_TRIGGER
 }
