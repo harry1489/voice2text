@@ -79,27 +79,46 @@ cd voice2text
 makepkg -si
 ```
 
-#### Setting up your own pacman repo
+#### Using the harry1489 repo
 
-1. Build the package:
+Add the repo to `/etc/pacman.conf`:
+
+```ini
+[harry1489]
+Server = https://harry1489.github.io/voice2text-repo
+SigLevel = Optional TrustAll
+```
+
+Then install:
+
+```bash
+sudo pacman -Syu voice2text
+```
+
+#### Hosting your own pacman repo
+
+1. Build and initialize the repo:
    ```bash
    git clone https://github.com/harry1489/voice2text.git
    cd voice2text
-   makepkg -s --noconfirm
+   ./repo/build-repo.sh
    ```
 
-2. Set up a local repo:
+2. Host the `repo/` folder (GitHub Pages, nginx, etc.):
    ```bash
-   sudo mkdir -p /srv/repo
-   cp *.pkg.tar.zst /srv/repo/
-   cd /srv/repo
-   repo-add voice2text.db.tar.gz *.pkg.tar.zst
+   # Option A: GitHub Pages
+   # Push the repo/ folder to a gh-pages branch
+   # Option B: Local HTTP server
+   python3 -m http.server 8080 --directory repo/
    ```
 
 3. Add to `/etc/pacman.conf`:
-   ```
+   ```ini
    [voice2text]
-   Server = file:///srv/repo
+   Server = https://your-server.com/repo
+   # Or for local:
+   # Server = http://localhost:8080
+   SigLevel = Optional TrustAll
    ```
 
 4. Install:
