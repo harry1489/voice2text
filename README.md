@@ -228,6 +228,32 @@ voice2text
 
 Hold the trigger key and speak. Release to transcribe.
 
+### 4. Run as a service (Linux)
+
+Install and enable the systemd service:
+
+```bash
+sudo cp voice2text.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now voice2text
+```
+
+Check status:
+```bash
+sudo systemctl status voice2text
+```
+
+View logs:
+```bash
+journalctl -u voice2text -f
+```
+
+Stop/restart:
+```bash
+sudo systemctl stop voice2text
+sudo systemctl restart voice2text
+```
+
 ## Configuration
 
 | Variable | Default | Description |

@@ -1,0 +1,12 @@
+[Unit]
+Description=voice2text - Voice-to-text dictation
+After=graphical.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/voice2text
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

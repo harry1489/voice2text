@@ -13,6 +13,7 @@ override_dh_auto_install:
 	install -Dm755 target/release/voice2text debian/voice2text/usr/bin/voice2text
 	install -Dm755 install.sh debian/voice2text/usr/share/voice2text/install.sh
 	install -d debian/voice2text/usr/share/voice2text/models
+	install -Dm644 voice2text.service debian/voice2text/usr/lib/systemd/system/voice2text.service
 
 override_dh_strip:
 	dh_strip --no-automatic-dbgsym
