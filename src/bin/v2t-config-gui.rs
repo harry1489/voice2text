@@ -14,11 +14,11 @@ fn main() {
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-    const ID_MODEL_COMBO: i32 = 1001;
-    const ID_KEY_COMBO: i32 = 1002;
-    const ID_BTN_DOWNLOAD: i32 = 1003;
-    const ID_BTN_SAVE: i32 = 1004;
-    const ID_BTN_LAUNCH: i32 = 1005;
+    const ID_MODEL_COMBO: usize = 1001;
+    const ID_KEY_COMBO: usize = 1002;
+    const ID_BTN_DOWNLOAD: usize = 1003;
+    const ID_BTN_SAVE: usize = 1004;
+    const ID_BTN_LAUNCH: usize = 1005;
 
     const MODELS: &[(&str, &str)] = &[
         ("ggml-tiny.en.bin", "~39 MB - Fastest"),
@@ -90,7 +90,7 @@ fn main() {
         title: &str,
         style: u32,
         x: i32, y: i32, w: i32, h: i32,
-        id: i32,
+        id: usize,
     ) -> HWND {
         CreateWindowExW(
             0,
@@ -100,8 +100,8 @@ fn main() {
             x, y, w, h,
             parent,
             id as HMENU,
-            0 as HINSTANCE,
-            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
         )
     }
 
@@ -122,13 +122,13 @@ fn main() {
                 let combo = CreateWindowExW(
                     0,
                     to_wide("ComboBox").as_ptr(),
-                    std::ptr::null(),
-                    WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+                    std::ptr::null_mut(),
+                    WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST as u32 | WS_VSCROLL,
                     90, 18, 350, 200,
                     hwnd,
                     ID_MODEL_COMBO as HMENU,
-                    0 as HINSTANCE,
-                    std::ptr::null(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
                 );
                 SendMessageW(combo, WM_SETFONT, font as WPARAM, 1);
                 for (name, desc) in MODELS {
@@ -155,13 +155,13 @@ fn main() {
                 let keycombo = CreateWindowExW(
                     0,
                     to_wide("ComboBox").as_ptr(),
-                    std::ptr::null(),
-                    WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+                    std::ptr::null_mut(),
+                    WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST as u32 | WS_VSCROLL,
                     90, 58, 350, 200,
                     hwnd,
                     ID_KEY_COMBO as HMENU,
-                    0 as HINSTANCE,
-                    std::ptr::null(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
                 );
                 SendMessageW(keycombo, WM_SETFONT, font as WPARAM, 1);
                 for (hex, desc) in KEYS {
@@ -179,21 +179,21 @@ fn main() {
 
                 let btn_dl = create_child(
                     hwnd, "Button", "Download Model",
-                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON as u32,
                     90, 110, 170, 35, ID_BTN_DOWNLOAD,
                 );
                 SendMessageW(btn_dl, WM_SETFONT, font as WPARAM, 1);
 
                 let btn_save = create_child(
                     hwnd, "Button", "Save",
-                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON as u32,
                     270, 110, 80, 35, ID_BTN_SAVE,
                 );
                 SendMessageW(btn_save, WM_SETFONT, font as WPARAM, 1);
 
                 let btn_launch = create_child(
                     hwnd, "Button", "Launch voice2text",
-                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                    WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON as u32,
                     90, 160, 260, 35, ID_BTN_LAUNCH,
                 );
                 SendMessageW(btn_launch, WM_SETFONT, font as WPARAM, 1);
@@ -202,14 +202,14 @@ fn main() {
             }
 
             WM_COMMAND => {
-                let id = (wparam & 0xffff) as i32;
+                let id = wparam & 0xffff;
                 match id {
                     ID_BTN_SAVE => {
-                        let model_idx = SendMessageW(GetDlgItem(hwnd, ID_MODEL_COMBO), CB_GETCURSEL, 0, 0);
+                        let model_idx = SendMessageW(GetDlgItem(hwnd, ID_MODEL_COMBO as i32), CB_GETCURSEL, 0, 0);
                         if model_idx >= 0 && (model_idx as usize) < MODELS.len() {
                             write_config("model", MODELS[model_idx as usize].0);
                         }
-                        let key_idx = SendMessageW(GetDlgItem(hwnd, ID_KEY_COMBO), CB_GETCURSEL, 0, 0);
+                        let key_idx = SendMessageW(GetDlgItem(hwnd, ID_KEY_COMBO as i32), CB_GETCURSEL, 0, 0);
                         if key_idx >= 0 && (key_idx as usize) < KEYS.len() {
                             write_config("trigger", KEYS[key_idx as usize].0);
                         }
@@ -223,7 +223,7 @@ fn main() {
                         0
                     }
                     ID_BTN_DOWNLOAD => {
-                        let model_idx = SendMessageW(GetDlgItem(hwnd, ID_MODEL_COMBO), CB_GETCURSEL, 0, 0);
+                        let model_idx = SendMessageW(GetDlgItem(hwnd, ID_MODEL_COMBO as i32), CB_GETCURSEL, 0, 0);
                         if model_idx < 0 || (model_idx as usize) >= MODELS.len() {
                             return 0;
                         }
@@ -284,12 +284,12 @@ fn main() {
             cbClsExtra: 0,
             cbWndExtra: 0,
             hInstance: instance,
-            hIcon: LoadIconW(0 as HINSTANCE, IDI_APPLICATION),
-            hCursor: LoadCursorW(0 as HINSTANCE, IDC_ARROW),
-            hbrBackground: (COLOR_WINDOW + 1) as HBRUSH,
+            hIcon: LoadIconW(std::ptr::null_mut(), IDI_APPLICATION),
+            hCursor: LoadCursorW(std::ptr::null_mut(), IDC_ARROW),
+            hbrBackground: (COLOR_WINDOW + 1) as usize as HBRUSH,
             lpszMenuName: std::ptr::null(),
             lpszClassName: class_name.as_ptr(),
-            hIconSm: 0,
+            hIconSm: std::ptr::null_mut(),
         };
         RegisterClassExW(&wc);
 
@@ -300,11 +300,14 @@ fn main() {
             title.as_ptr(),
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
             CW_USEDEFAULT, CW_USEDEFAULT, 480, 260,
-            0, 0 as HMENU, instance, std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            instance,
+            std::ptr::null_mut(),
         );
 
         let mut msg: MSG = std::mem::zeroed();
-        while GetMessageW(&mut msg, 0, 0, 0) > 0 {
+        while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
