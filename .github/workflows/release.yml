@@ -20,7 +20,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: RUSTFLAGS="-C target-cpu=x86-64 -C panic=abort" cargo build --release
-      - name: Package
+      - name: Package tarball
         run: |
           mkdir -p dist/voice2text-linux-x86_64
           cp target/release/voice2text dist/voice2text-linux-x86_64/
@@ -28,10 +28,37 @@ jobs:
           cp install.sh dist/voice2text-linux-x86_64/
           cp voice2text.service dist/voice2text-linux-x86_64/
           tar czf dist/voice2text-linux-x86_64.tar.gz -C dist voice2text-linux-x86_64
+      - name: Build Arch package
+        run: |
+          mkdir -p pkg/{pkg,src}
+          cat > pkg/PKGBUILD << 'PKGEOF'
+          pkgname=voice2text
+          pkgver=0.3.0
+          pkgrel=1
+          pkgdesc="Voice-to-text dictation tool using Whisper"
+          arch=('x86_64')
+          url="https://github.com/harry1489/voice2text"
+          license=('MIT')
+          depends=('alsa-lib' 'curl')
+          optdepends=('ydotool: fallback text injection' 'wtype: Wayland text injection')
+          package() {
+            install -Dm755 "$srcdir/voice2text" "$pkgdir/usr/bin/voice2text"
+            install -Dm755 "$srcdir/v2t-config" "$pkgdir/usr/bin/v2t-config"
+            install -Dm644 "$srcdir/voice2text.service" "$pkgdir/usr/lib/systemd/system/voice2text.service"
+          }
+          PKGEOF
+          cp target/release/voice2text pkg/
+          cp target/release/v2t-config pkg/
+          cp voice2text.service pkg/
+          cd pkg && makepkg --nocheck --noconfirm 2>&1 | tail -5
+          cp *.pkg.tar.zst ../dist/
+          cd ..
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64
-          path: dist/voice2text-linux-x86_64.tar.gz
+          name: linux
+          path: |
+            dist/voice2text-linux-x86_64.tar.gz
+            dist/*.pkg.tar.zst
 
   build-windows:
     runs-on: windows-latest
@@ -71,7 +98,7 @@ jobs:
       - name: Collect files
         run: |
           mkdir -p release-files
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.msi" \) -exec cp {} release-files/ \;
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.msi" -o -name "*.pkg.tar.zst" \) -exec cp {} release-files/ \;
           ls -lh release-files/
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
