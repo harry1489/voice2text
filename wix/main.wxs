@@ -66,6 +66,24 @@
                             KeyPath="yes" />
                     </Component>
 
+                    <Component Id="ConfigCli" Guid="*">
+                        <File
+                            Id="v2t_config.exe"
+                            Name="v2t-config.exe"
+                            DiskId="1"
+                            Source="!(bind.TargetDir)\v2t-config.exe"
+                            KeyPath="yes" />
+                    </Component>
+
+                    <Component Id="ConfigGui" Guid="*">
+                        <File
+                            Id="v2t_config_gui.exe"
+                            Name="v2t-config-gui.exe"
+                            DiskId="1"
+                            Source="!(bind.TargetDir)\v2t-config-gui.exe"
+                            KeyPath="yes" />
+                    </Component>
+
                     <Component Id="ModelsDir" Guid="*">
                         <CreateFolder Directory="ModelsFolder" />
                     </Component>
@@ -134,6 +152,8 @@
             Absent="disallow">
 
             <ComponentRef Id="MainExecutable" />
+            <ComponentRef Id="ConfigCli" />
+            <ComponentRef Id="ConfigGui" />
             <ComponentRef Id="LicenseFile" />
             <ComponentRef Id="InstallScript" />
             <ComponentRef Id="Shortcut" />
