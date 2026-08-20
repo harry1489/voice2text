@@ -4,8 +4,8 @@ use std::process::Command;
 
 const MODELS: &[(&str, &str, &str)] = &[
     ("1", "ggml-tiny.en.bin", "~39 MB - Fastest, lowest accuracy"),
-    ("2", "ggml-base.en.bin", "~142 MB - Good balance"),
-    ("3", "ggml-small.en.bin", "~461 MB - Recommended"),
+    ("2", "ggml-base.en.bin", "~142 MB - Default, good for old hardware"),
+    ("3", "ggml-small.en.bin", "~461 MB - Better accuracy, needs more RAM"),
     ("4", "ggml-medium.en.bin", "~1.5 GB - High accuracy"),
     ("5", "ggml-large-v3.bin", "~3.1 GB - Best accuracy"),
 ];

@@ -23,7 +23,7 @@ mod stt;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
-const DEFAULT_MODEL: &str = "ggml-small.en.bin";
+const DEFAULT_MODEL: &str = "ggml-base.en.bin";
 const DEFAULT_TRIGGER: u16 = 193;
 
 fn config_dir() -> PathBuf {

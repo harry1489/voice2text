@@ -27,7 +27,7 @@ impl Transcriber {
         let mut state = self.ctx.create_state().map_err(|e| e.to_string())?;
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        params.set_n_threads(8);
+        params.set_n_threads(2);
         params.set_language(Some("en"));
         params.set_no_timestamps(true);
         params.set_single_segment(true);
