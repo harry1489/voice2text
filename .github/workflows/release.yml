@@ -13,18 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake clang pkg-config libasound2-dev
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: RUSTFLAGS="-C target-cpu=x86-64 -C panic=abort" cargo build --release
-
       - name: Package
         run: |
           mkdir -p dist/voice2text-linux-x86_64
@@ -33,31 +28,24 @@ jobs:
           cp install.sh dist/voice2text-linux-x86_64/
           cp voice2text.service dist/voice2text-linux-x86_64/
           tar czf dist/voice2text-linux-x86_64.tar.gz -C dist voice2text-linux-x86_64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-x86_64
           path: dist/voice2text-linux-x86_64.tar.gz
 
   build-linux-aarch64:
     runs-on: ubuntu-latest
+    container: debian:bookworm
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install cross-compilation toolchain
+      - name: Install dependencies
         run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y cmake clang pkg-config \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            libasound2-dev:arm64
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+          apt-get update
+          apt-get install -y curl cmake clang pkg-config libasound2-dev \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libasound2-dev
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-gnu
-
       - name: Build
         run: |
           export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
@@ -66,7 +54,6 @@ jobs:
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
           export PKG_CONFIG_ALLOW_CROSS=1
           RUSTFLAGS="-C target-cpu=cortex-a53 -C panic=abort" cargo build --release --target aarch64-unknown-linux-gnu
-
       - name: Package
         run: |
           mkdir -p dist/voice2text-linux-aarch64
@@ -75,9 +62,7 @@ jobs:
           cp install.sh dist/voice2text-linux-aarch64/
           cp voice2text.service dist/voice2text-linux-aarch64/
           tar czf dist/voice2text-linux-aarch64.tar.gz -C dist voice2text-linux-aarch64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-aarch64
           path: dist/voice2text-linux-aarch64.tar.gz
@@ -86,35 +71,22 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-wix
         run: cargo install cargo-wix
-
-      - name: Overwrite WiX manifest
-        run: cargo wix init --force
-
       - name: Build
         run: cargo build --release
-
       - name: Build MSI
-        run: cargo wix --no-build
-
+        run: cargo wix --no-build --notest
       - name: Package zip
         run: |
-          mkdir -p dist/voice2text-windows-x86_64
-          cp target/release/voice2text.exe dist/voice2text-windows-x86_64/
-          cp target/release/v2t-config.exe dist/voice2text-windows-x86_64/
-          Compress-Archive -Path dist/voice2text-windows-x86_64/* -DestinationPath dist/voice2text-windows-x86_64.zip
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+          mkdir dist
+          Compress-Archive -Path target/release/voice2text.exe,target/release/v2t-config.exe -DestinationPath dist/voice2text-windows-x86_64.zip
+      - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
-            dist/voice2text-windows-x86_64.zip
+            dist/*.zip
             target/wix/*.msi
 
   build-macos:
@@ -128,43 +100,33 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
-
       - name: Package
         run: |
           mkdir -p dist/voice2text-macos-${{ matrix.arch }}
-          cp target/${{ matrix.target }}/release/voice2text dist/voice2text-macos-${{ matrix.arch }}/
-          cp target/${{ matrix.target }}/release/v2t-config dist/voice2text-macos-${{ matrix.arch }}/ 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/voice2text dist/voice2text-macos-${{ matrix.arch }}/ 2>/dev/null || true
           tar czf dist/voice2text-macos-${{ matrix.arch }}.tar.gz -C dist voice2text-macos-${{ matrix.arch }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
           path: dist/voice2text-macos-${{ matrix.arch }}.tar.gz
 
   release:
+    if: always()
     needs: [build-linux-x86_64, build-linux-aarch64, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
+      - uses: actions/download-artifact@v4
       - name: Collect files
         run: |
           mkdir -p release-files
-          find . -name "*.tar.gz" -o -name "*.zip" -o -name "*.msi" | while read f; do cp "$f" release-files/; done
+          find . -path '*/voice2text-*' -name '*.tar.gz' -o -name '*.zip' -o -name '*.msi' | while read f; do cp "$f" release-files/; done
           ls -lh release-files/
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
