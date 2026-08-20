@@ -6,198 +6,65 @@ Voice-to-text dictation tool for Linux and Windows. Hold a hotkey, speak, and yo
 - **No cloud APIs** — your audio never leaves your machine
 - **Cross-platform** — Linux (uinput/ydotool/wtype) and Windows (SendInput)
 - **Multiple text injection methods** with automatic fallback
+- **Optimized for old hardware** — 2 threads, small model default
 
-## Platform support
+## Quick install
 
-| Platform | Text injection | Hotkey method |
-|----------|---------------|---------------|
-| Linux | uinput, ydotool, wtype, wl-copy | evdev (`/dev/input`) |
-| Windows | SendInput API | `GetAsyncKeyState` polling |
+### Arch Linux
 
-## Dependencies
-
-### Linux
-
-| Dependency | Purpose |
-|------------|---------|
-| `alsa-lib` | Audio capture |
-| `cmake` | Building whisper.cpp |
-| `clang` | Generating FFI bindings |
-| `pkg-config` | Finding system libraries |
-
-Optional: `ydotool`, `wtype`, `wl-clipboard` (text injection fallbacks)
-
-### Windows
-
-- [Rust](https://rustup.rs/) toolchain
-- Visual Studio Build Tools (C++ workload)
-- CMake (usually bundled with vcpkg or install separately)
-
-## Installation
-
-### Windows
-
-```powershell
-# Build from source:
-git clone https://github.com/harry1489/voice2text.git
-cd voice2text
-cargo build --release
-copy target\release\voice2text.exe C:\Users\YourName\AppData\Local\Microsoft\WindowsApps\
-```
-
-Or add `target\release\` to your `PATH`.
-
-#### Building the MSI installer
-
-1. Install [WiX Toolset](https://wixtoolset.org/) v3.14+ and [cargo-wix](https://github.com/volks73/cargo-wix):
-   ```powershell
-   cargo install cargo-wix
-   ```
-
-2. Build the MSI:
-   ```powershell
-   cargo wix
-   ```
-
-3. The installer will be at `target\wix\voice2text-0.1.0-x64.msi`.
-
-The MSI installer:
-- Installs to `Program Files\voice2text\`
-- Adds a Start Menu shortcut
-- Optionally adds a Desktop shortcut
-- Supports silent install: `voice2text-0.1.0-x64.msi /quiet /norestart`
-
-### Arch Linux (AUR)
-
-```bash
-# Using an AUR helper like yay/paru:
-yay -S voice2text
-
-# Or manually:
-git clone https://aur.archlinux.org/voice2text.git
-cd voice2text
-makepkg -si
-```
-
-#### Using the harry1489 repo
-
-Add the repo to `/etc/pacman.conf`:
+Add to `/etc/pacman.conf`:
 
 ```ini
-[harry1489]
-Server = https://harry1489.github.io/voice2text-repo
+[voice2text]
+Server = https://repo.notahomelab.com/voice2text
 SigLevel = Optional TrustAll
 ```
-
-Then install:
 
 ```bash
 sudo pacman -Syu voice2text
 ```
 
-#### Hosting your own pacman repo
-
-1. Build and initialize the repo:
-   ```bash
-   git clone https://github.com/harry1489/voice2text.git
-   cd voice2text
-   ./repo/build-repo.sh
-   ```
-
-2. Host the `repo/` folder (GitHub Pages, nginx, etc.):
-   ```bash
-   # Option A: GitHub Pages
-   # Push the repo/ folder to a gh-pages branch
-   # Option B: Local HTTP server
-   python3 -m http.server 8080 --directory repo/
-   ```
-
-3. Add to `/etc/pacman.conf`:
-   ```ini
-   [voice2text]
-   Server = https://your-server.com/repo
-   # Or for local:
-   # Server = http://localhost:8080
-   SigLevel = Optional TrustAll
-   ```
-
-4. Install:
-   ```bash
-   sudo pacman -Syu voice2text
-   ```
-
 ### Debian / Ubuntu
 
 ```bash
-git clone https://github.com/harry1489/voice2text.git
-cd voice2text
-dpkg-buildpackage -us -uc
-sudo dpkg -i ../voice2text_0.1.0-1_amd64.deb
-sudo apt-get install -f
+echo "deb [trusted=yes] https://repo.notahomelab.com/debian ./" | sudo tee /etc/apt/sources.list.d/voice2text.list
+sudo apt update && sudo apt install voice2text
 ```
-
-#### Setting up your own apt repo
-
-1. Build the package:
-   ```bash
-   git clone https://github.com/harry1489/voice2text.git
-   cd voice2text
-   dpkg-buildpackage -us -uc
-   ```
-
-2. Set up the repo:
-   ```bash
-   sudo mkdir -p /srv/repo
-   cp ../voice2text_*.deb /srv/repo/
-   cd /srv/repo
-   dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
-   ```
-
-3. Add to `/etc/apt/sources.list.d/voice2text.list`:
-   ```
-   deb [trusted=yes] file:///srv/repo ./
-   ```
-
-4. Install:
-   ```bash
-   sudo apt update
-   sudo apt install voice2text
-   ```
 
 ### Fedora
 
 ```bash
-git clone https://github.com/harry1489/voice2text.git
-cd voice2text
-rpmbuild -bb packaging/fedora/voice2text.spec
-sudo rpm -i ~/rpmbuild/RPMS/x86_64/voice2text-0.1.0-1.fc*.x86_64.rpm
+sudo dnf config-manager addrepo --from-repofile=https://repo.notahomelab.com/fedora/voice2text.repo
+sudo dnf install voice2text
 ```
 
-### Gentoo
+Or manually:
 
 ```bash
-git clone https://github.com/harry1489/voice2text.git
-cd voice2text
-sudo cp packaging/gentoo/voice2text-0.1.0.ebuild /var/db/repos/local/sys-apps/voice2text/
-sudo emerge --ask voice2text
+sudo dnf install https://repo.notahomelab.com/fedora/voice2text-0.3.0-1.x86_64.rpm
 ```
 
 ### NixOS
 
 ```bash
-git clone https://github.com/harry1489/voice2text.git
-cd voice2text
+nix run https://repo.notahomelab.com/nixos/voice2text.nix
+```
 
-# Build and run directly:
-nix-build packaging/nix/default.nix
+Or add to your `flake.nix`:
 
-# Or add to your configuration.nix:
-#   nixpkgs.overlays = [
-#     (self: super: {
-#       voice2text = self.callPackage ./path/to/voice2text/packaging/nix/default.nix {};
-#     })
-#   ];
-#   environment.systemPackages = [ pkgs.voice2text ];
+```nix
+{
+  inputs.voice2text.url = "https://repo.notahomelab.com/nixos/voice2text.nix";
+  # ...
+}
+```
+
+### Gentoo
+
+```bash
+sudo eselect repository add voice2text-overlay https://repo.notahomelab.com/gentoo
+sudo emaint sync -r voice2text-overlay
+sudo emerge --ask app-misc/voice2text
 ```
 
 ### From source (any distro)
@@ -206,30 +73,48 @@ nix-build packaging/nix/default.nix
 git clone https://github.com/harry1489/voice2text.git
 cd voice2text
 cargo build --release
-# Linux:
-sudo cp target/release/voice2text /usr/bin/
-# Windows: copy target\release\voice2text.exe to somewhere in PATH
+sudo cp target/release/voice2text target/release/v2t-config /usr/bin/
 ```
 
-## Setup
+## Configuration
 
-### 1. Download a Whisper model
+Run the config tool to select a model and change the trigger key:
 
-**Linux:**
 ```bash
-./install.sh
+v2t-config
 ```
 
-**Windows** (PowerShell):
-```powershell
-Invoke-WebRequest -Uri "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin" -OutFile "models\ggml-base.en.bin"
+This creates `~/.config/voice2text/config`:
+
+```ini
+model = ggml-base.en.bin
+trigger = 0xc1
+model_dir = /home/you/.local/share/voice2text/models
 ```
 
-This downloads `ggml-base.en.bin` (~140MB) to `models/`. For better accuracy, set `V2T_MODEL=ggml-small.en.bin`.
+### Available models
 
-Available models: `ggml-tiny.en.bin`, `ggml-base.en.bin`, `ggml-small.en.bin`, `ggml-medium.en.bin`, `ggml-large-v3.bin`
+| Model | Size | RAM | Best for |
+|-------|------|-----|----------|
+| `ggml-tiny.en.bin` | ~39 MB | ~500 MB | Oldest hardware |
+| `ggml-base.en.bin` | ~142 MB | ~1 GB | Default, good balance |
+| `ggml-small.en.bin` | ~461 MB | ~2 GB | Better accuracy |
+| `ggml-medium.en.bin` | ~1.5 GB | ~4 GB | High accuracy |
+| `ggml-large-v3.bin` | ~3.1 GB | ~6 GB | Best accuracy |
 
-### 2. Permissions (Linux only)
+### Trigger keys
+
+Default: F23 (0xc1) — typically the Copilot button on keyboards.
+
+Change with `v2t-config` or set the environment variable:
+
+```bash
+V2T_TRIGGER=0x7f voice2text  # F24
+V2T_TRIGGER=0xb3 voice2text  # F19
+V2T_TRIGGER=0x3a voice2text  # Caps Lock
+```
+
+## Permissions (Linux only)
 
 For uinput text injection (recommended), add your user to the `input` and `uinput` groups:
 
@@ -239,7 +124,7 @@ sudo usermod -aG input,uinput $USER
 
 Log out and back in for changes to take effect.
 
-### 3. Run
+## Run
 
 ```bash
 voice2text
@@ -247,44 +132,14 @@ voice2text
 
 Hold the trigger key and speak. Release to transcribe.
 
-### 4. Run as a service (Linux)
-
-Install and enable the systemd service:
+### Run as a service (Linux)
 
 ```bash
-sudo cp voice2text.service /etc/systemd/system/
-sudo systemctl daemon-reload
 sudo systemctl enable --now voice2text
 ```
 
-Check status:
-```bash
-sudo systemctl status voice2text
-```
-
-View logs:
-```bash
-journalctl -u voice2text -f
-```
-
-Stop/restart:
-```bash
-sudo systemctl stop voice2text
-sudo systemctl restart voice2text
-```
-
-## Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `V2T_MODEL` | `ggml-small.en.bin` | Path to Whisper model file |
-| `V2T_TRIGGER` | `0xc1` (Linux) / `0xc1` (Windows) | Hex key code for the trigger key |
-
-Example:
-
-```bash
-V2T_MODEL=./models/ggml-base.en.bin V2T_TRIGGER=0x3e voice2text
-```
+Check status: `sudo systemctl status voice2text`
+View logs: `journalctl -u voice2text -f`
 
 ## Text injection
 
